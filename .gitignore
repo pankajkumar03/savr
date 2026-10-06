@@ -1,0 +1,18 @@
+# Android / Gradle
+.gradle/
+.kotlin/
+build/
+app/build/
+.idea/
+*.iml
+local.properties
+captures/
+.cxx/
+# Backend
+backend/.venv/
+backend/cache/
+backend/cookies.txt
+__pycache__/
+# Secrets: never commit signing keys
+*.jks
+*.keystore

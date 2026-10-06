@@ -1,0 +1,5 @@
+<paths>
+    <cache-path name="share" path="share/"/>
+    <!-- Android 8-9 saves to public Movies/Pictures/Music: needed for "Open with" on those versions -->
+    <external-path name="public" path="."/>
+</paths>

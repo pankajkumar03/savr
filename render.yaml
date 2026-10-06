@@ -1,0 +1,10 @@
+# One-click deploy on Render (render.com > New > Blueprint > pick this repo). Gives an https URL like
+# https://savr-backend.onrender.com/ - put that in gradle.properties as API_BASE_URL.
+services:
+  - type: web
+    name: savr-backend
+    runtime: docker
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    plan: free           # free: sleeps after 15 min idle, first request then takes ~1 min; "starter" stays awake
+    healthCheckPath: /health

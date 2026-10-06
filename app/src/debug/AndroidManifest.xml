@@ -1,0 +1,5 @@
+<!-- Debug only: allow plain http so the app can reach the local backend (backend/server.py) on the same Wi-Fi.
+     Release builds keep Android's default (https only). -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application android:usesCleartextTraffic="true"/>
+</manifest>
