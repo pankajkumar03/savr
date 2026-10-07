@@ -69,7 +69,8 @@ def _http_error(e: Exception) -> HTTPException:
     if any(k in m for k in ("private", "login", "log in", "sign in", "not available", "unavailable", "removed",
                             "does not exist", "404", "403", "restricted", "age")):
         return HTTPException(403, "private")
-    return HTTPException(502, "extract failed")
+    # keep yt-dlp's reason (first line, trimmed) so failures can be diagnosed from the app/logs
+    return HTTPException(502, "extract failed: " + str(e).replace("ERROR: ", "").splitlines()[0][:200])
 
 
 def _register(url: str, headers: dict) -> str:
@@ -90,21 +91,30 @@ def _register_merge(page_url: str, selector: str) -> str:
 def _merged_size(fmts, max_h):
     """Approximate size of best video <= max_h + best audio, for the size shown in the app."""
     v = [f for f in fmts if f.get("vcodec") not in (None, "none") and (f.get("height") or 0) <= max_h and _size(f)]
-    a = [f for f in fmts if f.get("vcodec") in (None, "none") and f.get("acodec") not in (None, "none") and _size(f)]
+    a = [f for f in fmts if f.get("vcodec") == "none" and f.get("acodec") not in (None, "none") and _size(f)]
     if not v or not a:
         return None
     bv = max(v, key=lambda f: (f.get("height") or 0, f.get("tbr") or 0)); ba = max(a, key=lambda f: f.get("abr") or 0)
     return _size(bv) + _size(ba)
 
 
+def _height(f):
+    """Height, falling back to the format id: Facebook only labels its two MP4s "hd" / "sd"."""
+    if f.get("height"):
+        return f["height"]
+    fid = str(f.get("format_id", "")).lower()
+    return 720 if "hd" in fid else 360 if "sd" in fid else 0
+
+
 def _progressive(fmts):
-    """Formats with both audio and video in one plain-HTTP file (no DASH/HLS merging needed)."""
-    return [f for f in fmts if f.get("url") and f.get("vcodec") not in (None, "none") and f.get("acodec") not in (None, "none")
-            and f.get("protocol", "https") in ("http", "https")]
+    """Formats with both audio and video in one plain-HTTP file (no DASH/HLS merging needed).
+    A codec of None means "not reported" (Facebook), not "absent", so only an explicit "none" excludes a format."""
+    return [f for f in fmts if f.get("url") and f.get("vcodec") != "none" and f.get("acodec") != "none"
+            and f.get("protocol", "https") in ("http", "https") and f.get("ext") not in ("m4a", "mp3", "opus", "jpg", "webp", "png")]
 
 
 def _audio(fmts):
-    a = [f for f in fmts if f.get("url") and f.get("vcodec") in (None, "none") and f.get("acodec") not in (None, "none")
+    a = [f for f in fmts if f.get("url") and f.get("vcodec") == "none" and f.get("acodec") not in (None, "none")
          and f.get("protocol", "https") in ("http", "https")]
     m4a = [f for f in a if f.get("ext") == "m4a"]  # app saves audio as audio/mp4
     return max(m4a or a, key=lambda f: f.get("abr") or f.get("tbr") or 0, default=None)
@@ -118,14 +128,14 @@ def _build(info: dict, base: str) -> dict:
     if info.get("_type") == "playlist" and info.get("entries"):  # carousels / multi-video posts: take the first item
         info = next(e for e in info["entries"] if e)
     fmts = info.get("formats") or ([info] if info.get("url") else [])
-    prog = sorted(_progressive(fmts), key=lambda f: (f.get("height") or 0, f.get("tbr") or 0))
+    prog = sorted(_progressive(fmts), key=lambda f: (_height(f), f.get("tbr") or 0))
     qualities = []
 
     def add(label, f, ext):
         token = _register(f["url"], f.get("http_headers") or info.get("http_headers") or {})
         qualities.append({"label": label, "url": f"{base}v1/stream/{token}.{ext}", "bytes": _size(f)})
 
-    best_h = max([f.get("height") or 0 for f in prog], default=0)
+    best_h = max([_height(f) for f in prog], default=0)
     video_only_h = max([f.get("height") or 0 for f in fmts if f.get("vcodec") not in (None, "none") and f.get("acodec") in (None, "none")], default=0)
     if FFMPEG and video_only_h > best_h and info.get("webpage_url"):
         # Platform only offers separate video/audio streams at higher quality (YouTube): merge on this server.
@@ -137,11 +147,11 @@ def _build(info: dict, base: str) -> dict:
             qualities.append({"label": label, "url": f"{base}v1/merge/{_register_merge(page, sel)}.mp4", "bytes": _merged_size(fmts, h)})
     elif prog:
         best = prog[-1]
-        add("HD" if (best.get("height") or 0) >= 720 else "SD", best, "mp4")
-        smaller = [f for f in prog if (f.get("height") or 0) < (best.get("height") or 0)]
+        add("HD" if _height(best) >= 720 else "SD", best, "mp4")
+        smaller = [f for f in prog if _height(f) < _height(best)]
         if qualities[0]["label"] == "HD" and smaller:
             # pick the SD option closest to 480p
-            add("SD", min(smaller, key=lambda f: abs((f.get("height") or 0) - 480)), "mp4")
+            add("SD", min(smaller, key=lambda f: abs(_height(f) - 480)), "mp4")
     a = _audio(fmts)
     if a:
         add("Audio", a, "m4a")
