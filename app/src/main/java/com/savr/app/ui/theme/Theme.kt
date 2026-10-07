@@ -34,6 +34,7 @@ data class IosColors(
     val separator: Color,
     val bar: Color,         // translucent nav / tab bar
     val tint: Color, val tintSoft: Color,
+    val onTint: Color,      // text/icons on a tint-filled button (dark text on the lighter dark-mode tint for contrast)
     val thumb: Color,       // segmented-control thumb
     val dark: Boolean,
 )
@@ -41,11 +42,11 @@ data class IosColors(
 private val LightIos = IosColors(
     bg = Color(0xFFF2F2F7), card = Color.White, elevated = Color.White, fill = Color(0x1F767680),
     label = Color.Black, secondary = Color(0x993C3C43), tertiary = Color(0x4D3C3C43), separator = Color(0x4A3C3C43),
-    bar = Color(0xFAF9F9F9), tint = Olive, tintSoft = Color(0x1F6B7A3A), thumb = Color.White, dark = false)
+    bar = Color(0xFAF9F9F9), tint = Olive, tintSoft = Color(0x1F6B7A3A), onTint = Color.White, thumb = Color.White, dark = false)
 private val DarkIos = IosColors(
     bg = Color.Black, card = Color(0xFF1C1C1E), elevated = Color(0xFF2C2C2E), fill = Color(0x3D767680),
     label = Color.White, secondary = Color(0x99EBEBF5), tertiary = Color(0x4DEBEBF5), separator = Color(0x99545458),
-    bar = Color(0xFA1C1C1E), tint = Color(0xFFA7BC6E), tintSoft = Color(0x29A7BC6E), thumb = Color(0xFF636366), dark = true)
+    bar = Color(0xFA1C1C1E), tint = Color(0xFFA7BC6E), tintSoft = Color(0x29A7BC6E), onTint = Color(0xFF1B2010), thumb = Color(0xFF636366), dark = true)
 
 val LocalIos = staticCompositionLocalOf { LightIos }
 val LocalIsDark = compositionLocalOf { false }

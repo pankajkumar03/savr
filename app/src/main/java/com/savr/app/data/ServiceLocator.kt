@@ -16,8 +16,9 @@ object ServiceLocator {
         .build() }
     /** Downloads: the backend may merge video+audio before the first byte arrives, so allow a long wait between bytes. */
     val downloadHttp by lazy { http.newBuilder().readTimeout(10, TimeUnit.MINUTES).build() }
-    // Extraction asks the backend to resolve the post (yt-dlp): typically 2-10 s, allow 60 s
-    val api: ExtractApi by lazy { Retrofit.Builder().baseUrl(BuildConfig.API_BASE_URL).client(http.newBuilder().readTimeout(60, TimeUnit.SECONDS).build())
+    // Extraction asks the backend to resolve the post (yt-dlp): typically 2-10 s, but a sleeping free-tier server
+    // needs up to ~60 s to wake before it answers, so allow 120 s
+    val api: ExtractApi by lazy { Retrofit.Builder().baseUrl(BuildConfig.API_BASE_URL).client(http.newBuilder().readTimeout(120, TimeUnit.SECONDS).build())
         .addConverterFactory(GsonConverterFactory.create()).build().create(ExtractApi::class.java) }
     val settings by lazy { SettingsStore(app) }
 }

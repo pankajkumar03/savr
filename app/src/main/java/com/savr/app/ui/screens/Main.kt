@@ -316,12 +316,15 @@ fun ExtractSheet(url: String, settings: Settings, onDismiss: () -> Unit) {
             }
             when (val s = st) {
                 ExtractState.Loading -> Column {
+                    var slow by remember { mutableStateOf(false) }
+                    LaunchedEffect(Unit) { delay(7000); slow = true } // free server wakes up on the first request
                     Skeleton(Modifier.fillMaxWidth().aspectRatio(16f / 9), 14.dp); Spacer(Modifier.height(14.dp))
                     Skeleton(Modifier.fillMaxWidth(.75f).height(18.dp)); Spacer(Modifier.height(8.dp)); Skeleton(Modifier.fillMaxWidth().height(13.dp))
                     Spacer(Modifier.height(18.dp)); Skeleton(Modifier.fillMaxWidth().height(34.dp), 9.dp); Spacer(Modifier.height(16.dp))
                     Row(Modifier.fillMaxWidth().height(50.dp), Arrangement.Center, Alignment.CenterVertically) {
                         ActivitySpinner(Modifier.size(18.dp)); Spacer(Modifier.width(8.dp))
-                        Text("Fetching from ${detectPlatform(url).label.takeIf { detectPlatform(url) != Plat.Unknown } ?: "the web"}…", style = IosType.Subhead, color = Ios.secondary) }
+                        Text(if (slow) "Waking up the server, this can take a minute…" else "Fetching from ${detectPlatform(url).label.takeIf { detectPlatform(url) != Plat.Unknown } ?: "the web"}…",
+                            style = IosType.Subhead, color = Ios.secondary, textAlign = TextAlign.Center) }
                 }
                 is ExtractState.Failed -> Column(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     Box(Modifier.size(72.dp).clip(CircleShape).background(Sys.Orange.copy(alpha = .15f)), Alignment.Center) {
@@ -364,8 +367,9 @@ fun ExtractSheet(url: String, settings: Settings, onDismiss: () -> Unit) {
                         Arrangement.Center, Alignment.CenterVertically) {
                         AnimatedContent(added, transitionSpec = { (scaleIn(iosSpring()) + fadeIn()) togetherWith fadeOut() }, label = "dlc") { a ->
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(if (a) Icons.Rounded.CheckCircle else Icons.Rounded.ArrowDownward, null, tint = Color.White, modifier = Modifier.size(20.dp)); Spacer(Modifier.width(6.dp))
-                                Text(if (a) (if (settings.wifiOnly) "Queued for Wi-Fi" else "Added to Library") else "Download", style = IosType.Headline, color = Color.White) } }
+                                val fg = if (a) Color.White else Ios.onTint
+                                Icon(if (a) Icons.Rounded.CheckCircle else Icons.Rounded.ArrowDownward, null, tint = fg, modifier = Modifier.size(20.dp)); Spacer(Modifier.width(6.dp))
+                                Text(if (a) (if (settings.wifiOnly) "Queued for Wi-Fi" else "Added to Library") else "Download", style = IosType.Headline, color = fg) } }
                     }
                     Spacer(Modifier.height(12.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {

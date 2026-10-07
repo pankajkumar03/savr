@@ -77,7 +77,7 @@ enum class BtnStyle { Filled, Tinted, Gray, Plain, Destructive }
 fun IosButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, icon: ImageVector? = null, style: BtnStyle = BtnStyle.Filled,
               enabled: Boolean = true, loading: Boolean = false, small: Boolean = false) {
     val (bg, fg) = when (style) {
-        BtnStyle.Filled -> Ios.tint to Color.White
+        BtnStyle.Filled -> Ios.tint to Ios.onTint
         BtnStyle.Tinted -> Ios.tintSoft to Ios.tint
         BtnStyle.Gray -> Ios.fill to Ios.tint
         BtnStyle.Plain -> Color.Transparent to Ios.tint
